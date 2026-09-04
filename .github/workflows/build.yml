@@ -14,16 +14,13 @@ jobs:
 
       - name: Extract Project Zip
         run: |
-          unzip -o play-&-earn.zip -d .
-          if [ -f gradlew ]; then
-            chmod +x gradlew
+          mkdir project
+          unzip -o "play-&-earn.zip" -d project
+          BUILD_FILE=$(find project -name "build.gradle*" | head -n 1)
+          if [ -n "$BUILD_FILE" ]; then
+            echo "PROJECT_ROOT=$(dirname "$BUILD_FILE")" >> $GITHUB_ENV
           else
-            GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
-            if [ -n "$GRADLEW_PATH" ]; then
-              DIR=$(dirname "$GRADLEW_PATH")
-              cd "$DIR"
-              chmod +x gradlew
-            fi
+            echo "PROJECT_ROOT=project" >> $GITHUB_ENV
           fi
 
       - name: Set up JDK 17
@@ -32,20 +29,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Build Debug APK
         run: |
-          if [ -f gradlew ]; then
-            ./gradlew assembleDebug --stacktrace
-          else
-            GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
-            DIR=$(dirname "$GRADLEW_PATH")
-            cd "$DIR"
-            ./gradlew assembleDebug --stacktrace
-          fi
+          cd $PROJECT_ROOT
+          gradle assembleDebug --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: "**/*.apk"
           
