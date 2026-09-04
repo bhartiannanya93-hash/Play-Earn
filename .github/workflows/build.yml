@@ -18,32 +18,27 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Extract Project and Setup Wrapper
+      - name: Install Gradle 8.7
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+          echo "$GITHUB_WORKSPACE/gradle-8.7/bin" >> $GITHUB_PATH
+
+      - name: Extract Project
         run: |
           mkdir -p project
           unzip -o "play-&-earn.zip" -d project
-          
-          # Find project root directory containing build files
           BUILD_FILE=$(find project -maxdepth 3 -name "build.gradle*" | head -n 1)
           if [ -n "$BUILD_FILE" ]; then
-            TARGET_DIR=$(dirname "$BUILD_FILE")
+            echo "PROJECT_DIR=$(dirname "$BUILD_FILE")" >> $GITHUB_ENV
           else
-            TARGET_DIR="project"
+            echo "PROJECT_DIR=project" >> $GITHUB_ENV
           fi
-          echo "PROJECT_DIR=$TARGET_DIR" >> $GITHUB_ENV
-          
-          cd "$TARGET_DIR"
-          # If gradlew wrapper is missing, generate it cleanly using gradle 8.7
-          if [ ! -f "gradlew" ]; then
-            sudo apt-get update && sudo apt-get install -y gradle
-            gradle wrapper --gradle-version 8.7
-          fi
-          chmod +x gradlew
 
       - name: Build Debug APK
         run: |
           cd "$PROJECT_DIR"
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
