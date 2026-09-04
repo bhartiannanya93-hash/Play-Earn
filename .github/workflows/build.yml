@@ -18,7 +18,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Gradle 8.7
+      - name: Install Gradle
         run: |
           wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
           unzip -q gradle-8.7-bin.zip
@@ -38,7 +38,7 @@ jobs:
       - name: Build Debug APK
         run: |
           cd "$PROJECT_DIR"
-          gradle assembleDebug --no-daemon --stacktrace
+          gradle assembleDebug --no-daemon --stacktrace -Dcom.android.build.gradle.overrideVersionCheck=true -Dandroid.overrideVersionCheck=true
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
