@@ -18,27 +18,22 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Gradle
-        run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
-          unzip -q gradle-8.7-bin.zip
-          echo "$GITHUB_WORKSPACE/gradle-8.7/bin" >> $GITHUB_PATH
-
-      - name: Extract Project
+      - name: Extract and Build
         run: |
           mkdir -p project
           unzip -o "play-&-earn.zip" -d project
-          BUILD_FILE=$(find project -maxdepth 3 -name "build.gradle*" | head -n 1)
-          if [ -n "$BUILD_FILE" ]; then
-            echo "PROJECT_DIR=$(dirname "$BUILD_FILE")" >> $GITHUB_ENV
+          
+          # Find directory with gradlew or build file
+          GRADLEW_PATH=$(find project -name "gradlew" | head -n 1)
+          if [ -n "$GRADLEW_PATH" ]; then
+            cd "$(dirname "$GRADLEW_PATH")"
+            chmod +x gradlew
+            ./gradlew assembleDebug --no-daemon --stacktrace -Dandroid.overrideVersionCheck=true
           else
-            echo "PROJECT_DIR=project" >> $GITHUB_ENV
+            BUILD_FILE=$(find project -name "build.gradle*" | head -n 1)
+            cd "$(dirname "$BUILD_FILE")"
+            gradle assembleDebug --no-daemon --stacktrace -Dandroid.overrideVersionCheck=true
           fi
-
-      - name: Build Debug APK
-        run: |
-          cd "$PROJECT_DIR"
-          gradle assembleDebug --no-daemon --stacktrace -Dcom.android.build.gradle.overrideVersionCheck=true -Dandroid.overrideVersionCheck=true
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
