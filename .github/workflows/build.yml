@@ -12,32 +12,38 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract Project Zip
-        run: |
-          mkdir project
-          unzip -o "play-&-earn.zip" -d project
-          BUILD_FILE=$(find project -name "build.gradle*" | head -n 1)
-          if [ -n "$BUILD_FILE" ]; then
-            echo "PROJECT_ROOT=$(dirname "$BUILD_FILE")" >> $GITHUB_ENV
-          else
-            echo "PROJECT_ROOT=project" >> $GITHUB_ENV
-          fi
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle 8.7
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.7'
+      - name: Extract Project and Setup Wrapper
+        run: |
+          mkdir -p project
+          unzip -o "play-&-earn.zip" -d project
+          
+          # Find project root directory containing build files
+          BUILD_FILE=$(find project -maxdepth 3 -name "build.gradle*" | head -n 1)
+          if [ -n "$BUILD_FILE" ]; then
+            TARGET_DIR=$(dirname "$BUILD_FILE")
+          else
+            TARGET_DIR="project"
+          fi
+          echo "PROJECT_DIR=$TARGET_DIR" >> $GITHUB_ENV
+          
+          cd "$TARGET_DIR"
+          # If gradlew wrapper is missing, generate it cleanly using gradle 8.7
+          if [ ! -f "gradlew" ]; then
+            sudo apt-get update && sudo apt-get install -y gradle
+            gradle wrapper --gradle-version 8.7
+          fi
+          chmod +x gradlew
 
       - name: Build Debug APK
         run: |
-          cd $PROJECT_ROOT
-          gradle assembleDebug --no-daemon
+          cd "$PROJECT_DIR"
+          ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
