@@ -22,6 +22,8 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Extract and Build
+        env:
+          GRADLE_OPTS: "-Djava.awt.headless=true -Xmx4096m -XX:MaxMetaspaceSize=1024m"
         run: |
           mkdir -p project
           unzip -o "play-&-earn.zip" -d project
@@ -30,16 +32,15 @@ jobs:
           if [ -n "$GRADLEW_PATH" ]; then
             cd "$(dirname "$GRADLEW_PATH")"
             chmod +x gradlew
-            ./gradlew assembleDebug --no-daemon --no-configuration-cache --stacktrace -Dandroid.overrideVersionCheck=true
+            ./gradlew assembleDebug --no-configuration-cache --stacktrace -Dandroid.overrideVersionCheck=true -Djava.awt.headless=true
           else
             BUILD_FILE=$(find project -name "build.gradle*" | head -n 1)
             cd "$(dirname "$BUILD_FILE")"
-            gradle assembleDebug --no-daemon --no-configuration-cache --stacktrace -Dandroid.overrideVersionCheck=true
+            gradle assembleDebug --no-configuration-cache --stacktrace -Dandroid.overrideVersionCheck=true -Djava.awt.headless=true
           fi
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: app-debug-apk
           path: "**/*.apk"
