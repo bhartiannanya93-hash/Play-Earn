@@ -22,21 +22,22 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Extract and Build
-        env:
-          GRADLE_OPTS: "-Djava.awt.headless=true -Xmx4096m -XX:MaxMetaspaceSize=1024m"
         run: |
           mkdir -p project
           unzip -o "play-&-earn.zip" -d project
           
-          GRADLEW_PATH=$(find project -name "gradlew" | head -n 1)
+          ROOT_DIR=$(dirname $(find project -name "build.gradle*" | head -n 1))
+          cd "$ROOT_DIR"
+          
+          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Djava.awt.headless=true" >> gradle.properties
+          echo "ksp.incremental=false" >> gradle.properties
+
+          GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
           if [ -n "$GRADLEW_PATH" ]; then
-            cd "$(dirname "$GRADLEW_PATH")"
-            chmod +x gradlew
-            ./gradlew assembleDebug --no-configuration-cache --stacktrace -Dandroid.overrideVersionCheck=true -Djava.awt.headless=true
+            chmod +x ./gradlew
+            ./gradlew assembleDebug --no-daemon --no-configuration-cache --stacktrace -Dandroid.overrideVersionCheck=true
           else
-            BUILD_FILE=$(find project -name "build.gradle*" | head -n 1)
-            cd "$(dirname "$BUILD_FILE")"
-            gradle assembleDebug --no-configuration-cache --stacktrace -Dandroid.overrideVersionCheck=true -Djava.awt.headless=true
+            gradle assembleDebug --no-daemon --no-configuration-cache --stacktrace -Dandroid.overrideVersionCheck=true
           fi
 
       - name: Upload Debug APK
